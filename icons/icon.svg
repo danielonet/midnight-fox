@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b3350"/>
+      <stop offset="1" stop-color="#0f1220"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#sky)"/>
+  <!-- fox ears -->
+  <path d="M15 27 L19 11 L28 21 Z" fill="#f08a3c"/>
+  <path d="M49 27 L45 11 L36 21 Z" fill="#f08a3c"/>
+  <!-- crescent moon face -->
+  <path d="M32 18a17 17 0 1 0 15.5 24A14 14 0 0 1 32 18z" fill="#f4e7c8"/>
+  <circle cx="47" cy="17" r="1.6" fill="#f4e7c8"/>
+  <circle cx="53" cy="26" r="1.1" fill="#f4e7c8"/>
+</svg>

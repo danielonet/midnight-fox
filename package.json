@@ -1,0 +1,12 @@
+{
+  "name": "midnight-fox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Firefox extension: dark mode for pages that don't have one",
+  "scripts": {
+    "test": "node test/run.js",
+    "lint": "npx web-ext lint --ignore-files 'test/**' package.json",
+    "build": "npx web-ext build --ignore-files 'test/**' package.json --overwrite-dest"
+  },
+  "license": "MIT"
+}
