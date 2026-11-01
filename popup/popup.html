@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Midnight Fox</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon.svg" alt="" width="28" height="28">
+    <h1>Midnight Fox</h1>
+    <label class="switch" title="Turn Midnight Fox on or off everywhere">
+      <input type="checkbox" id="enabled">
+      <span class="slider"></span>
+    </label>
+  </header>
+
+  <div id="permission" class="notice" hidden>
+    <p>Midnight Fox needs access to websites to darken them.</p>
+    <button id="grant">Allow access</button>
+  </div>
+
+  <section id="site-section">
+    <div class="row">
+      <h2 id="site-host">This site</h2>
+      <span id="status" class="status"></span>
+    </div>
+    <div class="segmented" role="radiogroup" aria-label="Dark mode on this site">
+      <button data-mode="auto" role="radio" title="Darken only if the site has no dark mode of its own">Auto</button>
+      <button data-mode="on" role="radio" title="Always remap this site's colours">Always</button>
+      <button data-mode="off" role="radio" title="Never touch this site">Never</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Theme</h2>
+    <div id="themes" class="themes" role="radiogroup" aria-label="Dark theme"></div>
+  </section>
+
+  <section>
+    <div class="range">
+      <label for="brightness">Background brightness</label>
+      <output id="brightness-out"></output>
+      <input type="range" id="brightness" min="-20" max="20" step="1">
+    </div>
+    <div class="range">
+      <label for="contrast">Text contrast</label>
+      <output id="contrast-out"></output>
+      <input type="range" id="contrast" min="-20" max="20" step="1">
+    </div>
+    <label class="check"><input type="checkbox" id="dimImages"> Dim images and videos</label>
+    <label class="check" title="Sites that support dark mode will use their own design">
+      <input type="checkbox" id="useNativeDark"> Prefer a site's own dark mode
+    </label>
+  </section>
+
+  <footer>
+    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> toggle site</span>
+    <button id="reset" class="link">Reset</button>
+  </footer>
+
+  <script src="../src/palette.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

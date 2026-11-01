@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Light page</title>
+<style>
+  body { font-family: sans-serif; margin: 0; background: #fff; color: #222; }
+  header { background: linear-gradient(#ffffff, #eef1f5); border-bottom: 1px solid #ddd; padding: 12px 20px; }
+  nav a { color: #1a0dab; margin-right: 12px; }
+  nav a:hover { color: #c00; background: #ffe; }
+  main { padding: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+  .card { background: #f7f7f9; border: 1px solid #e1e4e8; border-radius: 8px; padding: 14px; }
+  .muted { color: #888; }
+  .btn { background: #1a73e8; color: #fff; border: 0; padding: 8px 14px; border-radius: 6px; }
+  .btn.warn { background: #ffd54f; color: #333; }
+  .alert { background: #fdecea; color: #b71c1c; border-left: 4px solid #e53935; padding: 10px; }
+  .tag { background: #e3f2fd; color: #0d47a1; padding: 2px 8px; border-radius: 10px; }
+  .dark-band { background: #263238; color: #eceff1; padding: 10px; }
+  table { border-collapse: collapse; width: 100%; } td, th { border: 1px solid #ddd; padding: 6px; }
+  tr:nth-child(even) { background: #fafafa; }
+  input { border: 1px solid #ccc; padding: 6px; }
+  code { background: #f0f0f0; color: #c7254e; padding: 1px 4px; }
+</style></head>
+<body>
+<header><nav><a href="#">Home</a><a href="#">Docs</a><a href="#">Blog</a></nav></header>
+<main>
+  <div>
+    <h1>Hello world</h1>
+    <p>Plain body text with a <a href="#">link</a> and <code>inline code</code>.</p>
+    <p class="muted">Secondary, muted text.</p>
+    <div class="alert">Something went wrong.</div>
+    <p><button class="btn">Primary</button> <button class="btn warn">Warning</button> <span class="tag">tag</span></p>
+    <table><tr><th>Name</th><th>Value</th></tr><tr><td>a</td><td>1</td></tr><tr><td>b</td><td>2</td></tr></table>
+    <p><input placeholder="Type here"> <svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 10h16M10 2v16" stroke="#333" stroke-width="3"/></svg></p>
+  </div>
+  <aside class="card"><h3>Sidebar</h3><p>Card content</p><div class="dark-band">Already-dark band</div></aside>
+</main>
+<div id="later"></div>
+<script>setTimeout(() => { document.getElementById('later').innerHTML = '<div class="card" id="added">Added later by script</div>'; }, 100);</script>
+</body></html>
