@@ -10,21 +10,41 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "midnight-fox@danielonet",
-      "strict_min_version": "115.0",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   },
-  "permissions": ["storage", "activeTab", "browserSettings", "scripting"],
-  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "browserSettings",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
-    "scripts": ["src/palette.js", "src/background.js"]
+    "scripts": [
+      "src/palette.js",
+      "src/background.js"
+    ]
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["src/palette.js", "src/content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/palette.js",
+        "src/content.js"
+      ],
       "run_at": "document_start",
       "all_frames": true
     }
@@ -36,11 +56,15 @@
   },
   "commands": {
     "toggle-site": {
-      "suggested_key": { "default": "Alt+Shift+D" },
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
       "description": "Turn dark mode on or off for the current site"
     },
     "toggle-global": {
-      "suggested_key": { "default": "Alt+Shift+M" },
+      "suggested_key": {
+        "default": "Alt+Shift+M"
+      },
       "description": "Turn Midnight Fox on or off everywhere"
     }
   }
