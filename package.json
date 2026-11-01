@@ -5,8 +5,18 @@
   "description": "Firefox extension: dark mode for pages that don't have one",
   "scripts": {
     "test": "node test/run.js",
-    "lint": "npx web-ext lint --ignore-files 'test/**' package.json",
-    "build": "npx web-ext build --ignore-files 'test/**' package.json --overwrite-dest"
+    "lint": "web-ext lint",
+    "build": "web-ext build",
+    "start": "web-ext run",
+    "version:check": "node scripts/check-version.js",
+    "version:set": "node scripts/bump-version.js"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "web-ext": "10.8.0"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "license": "MIT"
 }

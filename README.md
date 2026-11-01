@@ -24,12 +24,12 @@ remapped into a dark theme of your choice.
 
 ## Install (development)
 
-1. Open `about:debugging#/runtime/this-firefox` in Firefox (115 or newer).
+1. Open `about:debugging#/runtime/this-firefox` in Firefox (140 or newer).
 2. Click **Load Temporary Add-on…** and select `manifest.json` from this folder.
 3. If Firefox asks for website access, allow it. You can also allow it from the popup.
 
-To package a build, run `npx web-ext build`. To start a test profile with the
-extension loaded, run `npx web-ext run`.
+For development: `npm install`, then `npm start` opens a Firefox profile with
+the extension loaded. `npm run build` creates the zip in `web-ext-artifacts/`.
 
 ## How it works
 
@@ -51,9 +51,50 @@ regenerated without scanning the page again.
 ## Tests
 
 ```sh
+npm install
+npx playwright install chromium   # once
 npm test          # runs the content script on test pages in headless Chromium
-npm run lint      # web-ext lint
+npm run lint      # Mozilla's add-on validator
 ```
+
+## Publishing to addons.mozilla.org
+
+Two GitHub Actions workflows handle this:
+
+- **CI** (`.github/workflows/ci.yml`) runs on every push and pull request.
+  It checks versions, runs Mozilla's validator, runs the tests and uploads the
+  unsigned zip.
+- **Release** (`.github/workflows/release.yml`) runs when a `v*.*.*` tag is pushed.
+  It runs CI, submits the build to addons.mozilla.org (AMO) and creates a
+  GitHub release with the package.
+
+### One-time setup
+
+1. Sign in at <https://addons.mozilla.org/developers/> and accept the developer agreement.
+2. Create API credentials at <https://addons.mozilla.org/developers/addon/api/key/>.
+3. In GitHub, go to **Settings → Environments**, create an environment named `amo`, and add two secrets:
+   - `AMO_JWT_ISSUER`: the "JWT issuer" value
+   - `AMO_JWT_SECRET`: the "JWT secret" value
+
+   Optionally, add yourself as a required reviewer so every release waits for your approval.
+4. Check the listing details in `amo-metadata.json` (summary, category, licence).
+   They are sent with every submission.
+
+### Releasing a version
+
+```sh
+npm run version:set -- 1.1.0          # updates manifest.json + package.json
+git commit -am "Release v1.1.0"
+git tag v1.1.0
+git push --follow-tags
+```
+
+The workflow fails if the tag doesn't match the version in `manifest.json`.
+Public ("listed") versions go into Mozilla's review queue. The job doesn't wait
+for review to finish; you get an email from AMO when the version is approved.
+
+To get a signed `.xpi` for self-distribution instead, run the **Release**
+workflow manually from the Actions tab and choose the `unlisted` channel.
 
 ## Known limitations
 

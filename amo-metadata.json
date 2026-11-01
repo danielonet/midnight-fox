@@ -1,0 +1,17 @@
+{
+  "categories": {
+    "firefox": ["appearance"]
+  },
+  "summary": {
+    "en-US": "Dark mode for every website. Pages without their own dark mode get their colours remapped into one of 6 dark themes."
+  },
+  "homepage": {
+    "en-US": "https://github.com/danielonet/midnight-fox"
+  },
+  "support_url": {
+    "en-US": "https://github.com/danielonet/midnight-fox/issues"
+  },
+  "version": {
+    "license": "MIT"
+  }
+}

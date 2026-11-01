@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['**']
+  pull_request:
+  workflow_call: # reused by release.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check versions match
+        run: npm run version:check
+
+      - name: Lint (Mozilla add-on validator)
+        run: npm run lint -- --warnings-as-errors
+
+      - name: Install Chromium for tests
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build package
+        run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: midnight-fox-unsigned
+          path: web-ext-artifacts/*.zip
+          if-no-files-found: error

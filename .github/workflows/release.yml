@@ -1,0 +1,87 @@
+name: Release to addons.mozilla.org
+
+# Runs when a version tag (v1.2.3) is pushed, or manually from the Actions tab.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: >-
+          listed = public on addons.mozilla.org (goes through Mozilla review);
+          unlisted = signed .xpi for self-distribution
+        type: choice
+        options: [listed, unlisted]
+        default: listed
+
+concurrency:
+  group: amo-release
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    # Add required reviewers to this environment for a manual approval step.
+    environment: amo
+    permissions:
+      contents: write # create the GitHub release
+    env:
+      CHANNEL: ${{ inputs.channel || 'listed' }}
+      WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+      WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check AMO credentials are set
+        run: |
+          if [ -z "$WEB_EXT_API_KEY" ] || [ -z "$WEB_EXT_API_SECRET" ]; then
+            echo "::error::Add the AMO_JWT_ISSUER and AMO_JWT_SECRET secrets (https://addons.mozilla.org/developers/addon/api/key/)."
+            exit 1
+          fi
+
+      - name: Check tag matches manifest version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: npm run version:check -- "$GITHUB_REF_NAME"
+
+      - name: Build package
+        run: npm run build
+
+      - name: Submit to addons.mozilla.org
+        run: |
+          if [ "$CHANNEL" = "listed" ]; then
+            # Listed versions wait for Mozilla review; don't block the job on it.
+            TIMEOUT=0
+          else
+            # Unlisted versions are signed automatically within a few minutes.
+            TIMEOUT=900000
+          fi
+          npx web-ext sign \
+            --channel "$CHANNEL" \
+            --amo-metadata amo-metadata.json \
+            --approval-timeout "$TIMEOUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: midnight-fox-${{ env.CHANNEL }}
+          path: web-ext-artifacts/*
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" web-ext-artifacts/* \
+            --title "Midnight Fox $GITHUB_REF_NAME" \
+            --generate-notes
