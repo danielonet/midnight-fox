@@ -1,4 +1,23 @@
-# Midnight Fox
+<p align="center">
+  <img src="icons/icon.svg" alt="Midnight Fox icon" width="128" height="128">
+</p>
+
+<h1 align="center">Midnight Fox</h1>
+
+<p align="center">
+  <a href="https://github.com/danielonet/midnight-fox/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/danielonet/midnight-fox/ci.yml?branch=main&amp;label=CI&amp;logo=githubactions&amp;logoColor=white" alt="CI status"></a>
+  <a href="https://github.com/danielonet/midnight-fox/actions/workflows/release.yml"><img src="https://img.shields.io/github/actions/workflow/status/danielonet/midnight-fox/release.yml?label=deployment&amp;logo=firefoxbrowser&amp;logoColor=white" alt="Deployment to addons.mozilla.org"></a>
+  <a href="https://github.com/danielonet/midnight-fox/releases/latest"><img src="https://img.shields.io/github/v/release/danielonet/midnight-fox?logo=github" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
+  <br>
+  <img src="https://img.shields.io/badge/JavaScript-vanilla-F7DF1E?logo=javascript&amp;logoColor=black" alt="JavaScript">
+  <img src="https://img.shields.io/badge/Manifest-V3-orange?logo=googlechrome&amp;logoColor=white" alt="Manifest V3">
+  <img src="https://img.shields.io/badge/Firefox-140%2B-FF7139?logo=firefoxbrowser&amp;logoColor=white" alt="Firefox 140+">
+  <img src="https://img.shields.io/badge/Node-%E2%89%A520-339933?logo=nodedotjs&amp;logoColor=white" alt="Node 20+">
+  <img src="https://img.shields.io/badge/tests-Playwright-45ba4b?logo=playwright&amp;logoColor=white" alt="Tested with Playwright">
+  <img src="https://img.shields.io/badge/linted%20with-web--ext-blue?logo=mozilla&amp;logoColor=white" alt="Linted with web-ext">
+  <a href="https://github.com/danielonet/midnight-fox/pulls"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome"></a>
+</p>
 
 A Firefox extension that gives every website a dark mode. Sites that already
 have a dark mode are left alone; sites that don't get their colour palette
