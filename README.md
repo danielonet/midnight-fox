@@ -41,6 +41,27 @@ remapped into a dark theme of your choice.
 - **Keyboard shortcuts:** <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> toggles the current
   site; <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> toggles everything.
 
+## Screenshots
+
+Captured by the Playwright test suite (`node test/run.js docs/screenshots`) on a
+fixture page, before and after the content script runs.
+
+| Original page | Midnight |
+| :---: | :---: |
+| ![Original page](docs/screenshots/light-off.png) | ![Midnight theme](docs/screenshots/theme-midnight.png) |
+
+| OLED Black | Dim Grey |
+| :---: | :---: |
+| ![OLED Black theme](docs/screenshots/theme-oled.png) | ![Dim Grey theme](docs/screenshots/theme-dim.png) |
+
+| Sepia Night | Nord |
+| :---: | :---: |
+| ![Sepia Night theme](docs/screenshots/theme-sepia.png) | ![Nord theme](docs/screenshots/theme-nord.png) |
+
+| Solarized Dark |
+| :---: |
+| ![Solarized Dark theme](docs/screenshots/theme-solarized.png) |
+
 ## Install (development)
 
 1. Open `about:debugging#/runtime/this-firefox` in Firefox (140 or newer).
