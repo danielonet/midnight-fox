@@ -1,0 +1,22 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>hostile text</title>
+<style>
+  body { background: #fff; color: #222; font: 16px sans-serif; }
+  /* page rules a plain attribute selector would lose to */
+  #mail .unread.imp { color: #101010 !important; }
+  .fill { -webkit-text-fill-color: #0a0a0a; color: #0a0a0a; }
+  /* dark translucent surface that stays as it is, with dark text on it */
+  .overlay { background: rgba(0, 0, 0, 0.8); color: #111; padding: 8px; }
+  .photo { background: #cfd8e3; color: #ffffff; padding: 8px; }
+  .tint { background: #1d2b53; color: #1d2b53; padding: 8px; }
+</style></head>
+<body>
+  <div id="mail">
+    <p class="unread imp">Unread: important rule, near-black</p>
+    <p class="unread" id="inline" style="color:#050505 !important">Unread: inline important</p>
+    <p class="fill">Unread: text-fill colour</p>
+    <p class="overlay">Dark overlay with dark text</p>
+    <p class="photo">White text on a light background</p>
+    <p class="tint">Same colour as background</p>
+  </div>
+</body></html>

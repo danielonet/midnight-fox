@@ -23,12 +23,14 @@
 
   const ATTR = 'data-midnight-fox';
   const SHEET_ATTR = 'data-midnight-fox-sheet';
+  const INLINE_ATTR = 'data-midnight-fox-inline';
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const TRANSPARENT = 'rgba(0, 0, 0, 0)';
   const isTop = window === window.top;
   const host = siteHost();
-  const { parseColor, lightness } = MF.color;
+  const { parseColor, lightness, contrastRatio } = MF.color;
 
+  const TEXT_TAGS = new Set(['input', 'textarea', 'select', 'button', 'option']);
   const SKIP_TAGS = new Set([
     'head', 'script', 'style', 'link', 'meta', 'title', 'noscript', 'template',
     'base', 'br', 'wbr', 'param', 'source', 'track'
@@ -45,6 +47,9 @@
 
   // Per element: the original (light-page) text colour it renders with.
   const state = new WeakMap();
+  // Per element: the decl read from it, and inline colours we had to override.
+  const decls = new WeakMap();
+  const inlined = new WeakMap();
   // Generated rules: key -> id, id -> original colour set.
   const ruleIds = new Map();
   const ruleDecls = [];
@@ -182,12 +187,16 @@
   }
 
   const ruleKey = (d) =>
-    [d.color, d.bg, d.bgImage, d.bt, d.br, d.bb, d.bl, d.fill, d.stroke].map((v) => v || '').join('|');
+    [d.color, d.bg, d.bgImage, d.bt, d.br, d.bb, d.bl, d.fill, d.stroke, d.fix, d.fixFill].map((v) => v || '').join('|');
 
   function ruleText(id, d) {
     const out = [];
     const add = (prop, v) => { if (v) out.push(`${prop}:${v}!important`); };
     if (d.color) add('color', mapper.fg(d.color));
+    if (d.fix) {
+      add('color', d.fix);
+      if (d.fixFill) add('-webkit-text-fill-color', d.fix);
+    }
     if (d.bg) add('background-color', mapper.bg(d.bg));
     if (d.bgImage) add('background-image', mapper.gradient(d.bgImage));
     if (d.bt) add('border-top-color', mapper.border(d.bt));
@@ -196,7 +205,8 @@
     if (d.bl) add('border-left-color', mapper.border(d.bl));
     if (d.fill) add('fill', mapper.icon(d.fill));
     if (d.stroke) add('stroke', mapper.icon(d.stroke));
-    return `[${ATTR}="${id}"]{${out.join(';')}}`;
+    // The id-level boost makes these beat the page's own !important rules.
+    return `[${ATTR}="${id}"]:not(#midnight-fox-x){${out.join(';')}}`;
   }
 
   function ruleId(d) {
@@ -343,6 +353,101 @@
     return d;
   }
 
+  /* ---------------- readability guarantee ---------------- */
+
+  const blend = (c, under) => ({
+    r: c.r * c.a + under.r * (1 - c.a),
+    g: c.g * c.a + under.g * (1 - c.a),
+    b: c.b * c.a + under.b * (1 - c.a),
+    a: 1
+  });
+
+  // The colour actually painted behind an element (as it renders now), or
+  // null when it sits on an image and can't be judged.
+  function backdropOf(el, memo) {
+    if (!el || el.nodeType !== 1) return parseColor(mapper.colors.bg);
+    if (memo.has(el)) return memo.get(el);
+    const cs = getComputedStyle(el);
+    let out;
+    if (cs.backgroundImage && cs.backgroundImage.includes('url(')) {
+      out = null;
+    } else {
+      const c = parseColor(cs.backgroundColor);
+      if (c && c.a >= 0.99) {
+        out = c;
+      } else {
+        const under = backdropOf(el.parentElement, memo);
+        out = !under ? null : c && c.a > 0 ? blend(c, under) : under;
+      }
+    }
+    memo.set(el, out);
+    return out;
+  }
+
+  function hasText(el) {
+    if (TEXT_TAGS.has(el.localName)) return true;
+    for (let n = el.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType === 3 && n.nodeValue.trim()) return true;
+    }
+    return false;
+  }
+
+  function restoreInline(el) {
+    const saved = inlined.get(el);
+    if (!saved) return;
+    for (const [prop, [value, prio]] of Object.entries(saved)) {
+      if (value) el.style.setProperty(prop, value, prio); else el.style.removeProperty(prop);
+    }
+    inlined.delete(el);
+    el.removeAttribute(INLINE_ATTR);
+  }
+
+  // Text must never be the same colour as (or close to) what is behind it,
+  // whatever the page did. Checks the rendered result and fixes the rest.
+  function ensureReadable(list) {
+    const memo = new Map();
+    const fixes = [];
+    for (const el of list) {
+      if (!hasText(el)) continue;
+      const cs = getComputedStyle(el);
+      const color = parseColor(cs.color);
+      const fill = parseColor(cs.webkitTextFillColor) || color;
+      if (!color || !fill || fill.a < 0.1) continue; // invisible on purpose (clipped gradient text…)
+      const bd = backdropOf(el, memo);
+      if (!bd) continue;
+      const shown = blend(fill, bd);
+      if (contrastRatio(shown, bd) >= 4.5) continue;
+      const fixed = mapper.readable(shown, bd);
+      if (!fixed) continue;
+      fixes.push({ el, css: MF.color.toCss({ ...fixed, a: 1 }), fixFill: cs.webkitTextFillColor !== cs.color });
+    }
+    if (!fixes.length) return;
+
+    for (const f of fixes) {
+      const d = { ...(decls.get(f.el) || {}), fix: f.css, fixFill: f.fixFill };
+      f.el.setAttribute(ATTR, ruleId(d));
+    }
+    // A page rule with an inline !important still wins; override it inline.
+    for (const f of fixes) {
+      const now = parseColor(getComputedStyle(f.el).color);
+      const want = parseColor(f.css);
+      if (now && want && Math.abs(now.r - want.r) + Math.abs(now.g - want.g) + Math.abs(now.b - want.b) < 6) continue;
+      const st = f.el.style;
+      inlined.set(f.el, {
+        color: [st.getPropertyValue('color'), st.getPropertyPriority('color')],
+        '-webkit-text-fill-color': [st.getPropertyValue('-webkit-text-fill-color'), st.getPropertyPriority('-webkit-text-fill-color')]
+      });
+      f.el.setAttribute(INLINE_ATTR, '');
+      st.setProperty('color', f.css, 'important');
+      if (f.fixFill) st.setProperty('-webkit-text-fill-color', f.css, 'important');
+    }
+    // Our own inline writes must not wake the observer again.
+    if (observer) {
+      const rest = observer.takeRecords().filter((r) => !(r.type === 'attributes' && inlined.has(r.target)));
+      if (rest.length) onMutations(rest);
+    }
+  }
+
   function isEmpty(d) {
     for (const k in d) return false;
     return true;
@@ -358,7 +463,10 @@
     if (!list.length) return [];
 
     // Strip our attribute first so we read the page's own colours.
-    for (const el of list) if (el.hasAttribute(ATTR)) el.removeAttribute(ATTR);
+    for (const el of list) {
+      if (el.hasAttribute(ATTR)) el.removeAttribute(ATTR);
+      if (el.hasAttribute(INLINE_ATTR)) restoreInline(el);
+    }
 
     // Our base sheet paints <html> dark; switch it off while reading it.
     const touchesRoot = list.includes(rootEl);
@@ -374,9 +482,11 @@
 
     for (let i = 0; i < list.length; i++) {
       const d = results[i];
+      decls.set(list[i], d);
       if (isEmpty(d)) continue;
       list[i].setAttribute(ATTR, ruleId(d));
     }
+    ensureReadable(list);
 
     // Shallow update changed the text colour → children need updating too.
     if (!deep) {
@@ -387,6 +497,7 @@
 
   function stripAll() {
     for (const el of doc.querySelectorAll(`[${ATTR}]`)) el.removeAttribute(ATTR);
+    for (const el of doc.querySelectorAll(`[${INLINE_ATTR}]`)) restoreInline(el);
   }
 
   function fullScan() {

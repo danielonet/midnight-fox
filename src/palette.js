@@ -51,6 +51,8 @@
     }
   };
 
+  const MIN_CONTRAST = 4.5; // WCAG AA for body text
+
   const DEFAULTS = {
     enabled: true,
     theme: 'midnight',
@@ -173,6 +175,20 @@
     return l / 100;
   }
 
+  // WCAG relative luminance and contrast ratio (1 … 21).
+  function luminance({ r, g, b }) {
+    const lin = (v) => {
+      v /= 255;
+      return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  }
+
+  function contrastRatio(a, b) {
+    const la = luminance(a), lb = luminance(b);
+    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  }
+
   const chroma = ({ r, g, b }) => (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
 
   const mix = (a, b, t) => ({
@@ -268,6 +284,21 @@
       return chroma(c) < 0.1 ? fgColor(c) : null;
     }
 
+    // Text must never melt into its background: returns a readable version
+    // of `fg` on `backdrop` (same hue), or null when it is already readable.
+    function readable(fg, backdrop, min = MIN_CONTRAST) {
+      const solid = { ...fg, a: 1 };
+      if (contrastRatio(solid, backdrop) >= min) return null;
+      const lightBackdrop = luminance(backdrop) > 0.4;
+      const [h, s, l0] = rgbToHsl(fg);
+      const step = lightBackdrop ? -0.04 : 0.04;
+      for (let l = l0; l >= 0 && l <= 1; l += step) {
+        const c = hslToRgb(h, s, l);
+        if (contrastRatio(c, backdrop) >= min + 0.2) return { ...c, a: fg.a };
+      }
+      return { ...(lightBackdrop ? { r: 17, g: 17, b: 17 } : T.fg), a: fg.a };
+    }
+
     const mapBg = cached('bg', bgColor);
     const COLOR_IN_STR = /rgba?\([^)]*\)/g;
 
@@ -282,6 +313,7 @@
       fg: cached('fg', fgColor),
       border: cached('border', borderColor),
       icon: cached('icon', iconColor),
+      readable,
       // Remaps every colour stop inside a computed gradient string.
       gradient(str) {
         return str.replace(COLOR_IN_STR, (m) => mapBg(m) || m);
@@ -293,6 +325,6 @@
     THEMES,
     DEFAULTS,
     createMapper,
-    color: { parseColor, toCss, lightness, chroma, rgbToHsl, hslToRgb, mix }
+    color: { parseColor, toCss, lightness, chroma, rgbToHsl, hslToRgb, mix, contrastRatio }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);

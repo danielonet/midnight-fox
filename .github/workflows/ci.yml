@@ -26,6 +26,9 @@ jobs:
       - name: Check versions match
         run: npm run version:check
 
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
+
       - name: Lint (Mozilla add-on validator)
         run: npm run lint -- --warnings-as-errors
 

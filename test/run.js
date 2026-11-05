@@ -99,6 +99,24 @@ const L = (page, sel, prop) => page.$eval(sel, (el, prop) => {
   await page.screenshot({ path: path.join(OUT, 'light-off.png') });
   await page.close();
 
+  // Text must stay readable even when the page fights back.
+  const hostile = await open(browser, 'hostile.html', { theme: 'oled' });
+  const ratios = await hostile.page.$$eval('#mail p', (ps) => ps.map((p) => {
+    const parse = (c) => c.match(/[\d.]+/g).map(Number);
+    let el = p, bg = [0, 0, 0];
+    for (; el; el = el.parentElement) {
+      const c = parse(getComputedStyle(el).backgroundColor);
+      if (c.length < 4 || c[3] > 0.95) { bg = c.slice(0, 3); break; }
+    }
+    const fg = parse(getComputedStyle(p).webkitTextFillColor);
+    const f = { r: fg[0], g: fg[1], b: fg[2] }, b = { r: bg[0], g: bg[1], b: bg[2] };
+    return [p.textContent, MidnightFox.color.contrastRatio(f, b)];
+  }));
+  for (const [text, ratio] of ratios) {
+    check(`readable: ${text}`, ratio >= 4.5, `contrast ${ratio.toFixed(2)}`);
+  }
+  await hostile.page.close();
+
   // Already-dark page is left alone.
   const dark = await open(browser, 'dark.html');
   const ds = await dark.page.evaluate(() => window.__onMessage({ type: 'mf-status' }));

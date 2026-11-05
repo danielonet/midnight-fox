@@ -1,6 +1,8 @@
 {
   "categories": {
-    "firefox": ["appearance"]
+    "firefox": [
+      "appearance"
+    ]
   },
   "summary": {
     "en-US": "Dark mode for every website. Pages without their own dark mode get their colours remapped into one of 6 dark themes."
@@ -12,6 +14,13 @@
     "en-US": "https://github.com/danielonet/midnight-fox/issues"
   },
   "version": {
-    "license": "MIT"
+    "license": "MIT",
+    "approval_notes": "No build step: the submitted zip is the repository source (npm run build only zips it with web-ext). No minified or generated code, no network requests, no remote code. Permissions: <all_urls> + scripting are needed to restyle page colours and to inject CSS on pages with a strict CSP (src/background.js); browserSettings is used to set overrideContentColorScheme so sites offer their own dark mode (src/background.js); storage keeps settings; activeTab covers the toolbar popup and shortcuts when site access is not granted."
+  },
+  "description": {
+    "en-US": "Midnight Fox gives every website a dark mode.\n\nSites that already have a dark mode are left alone. Everything else has its colour palette remapped into one of 6 dark themes (Midnight, OLED Black, Dim Grey, Sepia Night, Nord, Solarized Dark). Images are never inverted, and text is checked so it always stays readable against its background.\n\nPrivacy: no data is collected, there are no network requests and no remote code. All settings stay in your browser.\n\nWhy it needs access to all websites: it must read and restyle the colours of the pages you visit. That happens entirely locally.\n\nOpen source (MIT): https://github.com/danielonet/midnight-fox"
+  },
+  "privacy_policy": {
+    "en-US": "Midnight Fox does not collect, store or transmit any personal data. It makes no network requests and has no analytics or remote code. Settings are kept locally in your Firefox profile. Full policy: https://github.com/danielonet/midnight-fox/blob/main/PRIVACY.md"
   }
 }

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icons/icon.svg" alt="Midnight Fox icon" width="128" height="128">
+  <img src="icons/icon-128.png" alt="Midnight Fox icon" width="128" height="128">
 </p>
 
 <h1 align="center">Midnight Fox</h1>
@@ -135,6 +135,19 @@ for review to finish; you get an email from AMO when the version is approved.
 
 To get a signed `.xpi` for self-distribution instead, run the **Release**
 workflow manually from the Actions tab and choose the `unlisted` channel.
+
+## Privacy and permissions
+
+No data is collected, there are no network requests, and there is no remote
+code. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
+
+| Permission | Why |
+| --- | --- |
+| Access to all websites (`<all_urls>`) | Read and restyle page colours. Everything happens locally. |
+| `scripting` | Inject the dark styles on pages whose CSP blocks inline styles. |
+| `browserSettings` | Ask sites for their own dark mode (`prefers-color-scheme`). |
+| `storage` | Save your theme and per-site choices. |
+| `activeTab` | Let the popup and shortcuts work on the current tab if site access was not granted. |
 
 ## Known limitations
 
