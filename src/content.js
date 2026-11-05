@@ -30,6 +30,9 @@
   const host = siteHost();
   const { parseColor, lightness, contrastRatio } = MF.color;
 
+  // Blue text is only allowed on things that can be clicked.
+  const CLICKABLE = 'a[href],area[href],button,[role="link"],[role="button"],[onclick],input[type="button"],input[type="submit"]';
+  const CLICKABLE_SEL_RE = /(^|[\s>+~,(])a(?![\w-])|href|link|button|btn/i;
   const TEXT_TAGS = new Set(['input', 'textarea', 'select', 'button', 'option']);
   const SKIP_TAGS = new Set([
     'head', 'script', 'style', 'link', 'meta', 'title', 'noscript', 'template',
@@ -187,12 +190,12 @@
   }
 
   const ruleKey = (d) =>
-    [d.color, d.bg, d.bgImage, d.bt, d.br, d.bb, d.bl, d.fill, d.stroke, d.fix, d.fixFill].map((v) => v || '').join('|');
+    [d.color, d.link, d.bg, d.bgImage, d.bt, d.br, d.bb, d.bl, d.fill, d.stroke, d.fix, d.fixFill].map((v) => v || '').join('|');
 
   function ruleText(id, d) {
     const out = [];
     const add = (prop, v) => { if (v) out.push(`${prop}:${v}!important`); };
-    if (d.color) add('color', mapper.fg(d.color));
+    if (d.color) add('color', mapper.fg(d.color, d.link));
     if (d.fix) {
       add('color', d.fix);
       if (d.fixFill) add('-webkit-text-fill-color', d.fix);
@@ -310,19 +313,26 @@
     const color = cs.color;
     let orig = color;
     let own = true;
+    let link = false;
     const p = el.parentElement;
     if (p && el !== rootEl) {
       const ps = state.get(p);
       if (raw.has(p)) {
-        if (color === raw.get(p) && ps) { own = false; orig = ps.orig; }
-      } else if (ps && color === mapper.fg(ps.orig)) {
+        if (color === raw.get(p) && ps) { own = false; orig = ps.orig; link = ps.link; }
+      } else if (ps && color === mapper.fg(ps.orig, ps.link)) {
         own = false;
         orig = ps.orig;
+        link = ps.link;
       }
     }
     raw.set(el, color);
-    state.set(el, { orig });
-    if (own) d.color = orig;
+    if (own) {
+      const oc = parseColor(orig);
+      link = !!(oc && MF.color.isBlue(oc) && el.closest(CLICKABLE));
+      d.color = orig;
+      if (link) d.link = true;
+    }
+    state.set(el, { orig, link });
 
     // Backgrounds.
     const bg = cs.backgroundColor;
@@ -416,8 +426,9 @@
       const bd = backdropOf(el, memo);
       if (!bd) continue;
       const shown = blend(fill, bd);
-      if (contrastRatio(shown, bd) >= 4.5) continue;
-      const fixed = mapper.readable(shown, bd);
+      const blueText = MF.color.isBlue(shown) && !el.closest(CLICKABLE);
+      if (!blueText && contrastRatio(shown, bd) >= 4.5) continue;
+      const fixed = mapper.readable(shown, bd, blueText);
       if (!fixed) continue;
       fixes.push({ el, css: MF.color.toCss({ ...fixed, a: 1 }), fixFill: cs.webkitTextFillColor !== cs.color });
     }
@@ -540,7 +551,7 @@
     const color = s.getPropertyValue('color');
     const border = s.getPropertyValue('border-top-color') || s.getPropertyValue('border-color');
     const bgv = bg && mapper.bg(bg);
-    const cv = color && mapper.fg(color);
+    const cv = color && mapper.fg(color, CLICKABLE_SEL_RE.test(rule.selectorText));
     const bv = border && mapper.border(border);
     if (bgv) out.push(`background-color:${bgv}!important`);
     if (cv) out.push(`color:${cv}!important`);

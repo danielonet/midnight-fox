@@ -115,6 +115,13 @@ const L = (page, sel, prop) => page.$eval(sel, (el, prop) => {
   for (const [text, ratio] of ratios) {
     check(`readable: ${text}`, ratio >= 4.5, `contrast ${ratio.toFixed(2)}`);
   }
+  const hues = await hostile.page.evaluate(() => Object.fromEntries(
+    ['blue-text', 'navy-text', 'blue-link', 'blue-in-link'].map((id) => {
+      const m = getComputedStyle(document.getElementById(id)).color.match(/[\d.]+/g).map(Number);
+      return [id, MidnightFox.color.isBlue({ r: m[0], g: m[1], b: m[2] })];
+    })));
+  check('non-link text is never blue', !hues['blue-text'] && !hues['navy-text'], JSON.stringify(hues));
+  check('links stay blue', hues['blue-link'] && hues['blue-in-link'], JSON.stringify(hues));
   await hostile.page.close();
 
   // Already-dark page is left alone.

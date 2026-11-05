@@ -8,6 +8,8 @@
   /* dark translucent surface that stays as it is, with dark text on it */
   .overlay { background: rgba(0, 0, 0, 0.8); color: #111; padding: 8px; }
   .photo { background: #cfd8e3; color: #ffffff; padding: 8px; }
+  .blue { color: #1a56db; }
+  .navy { color: #0b1f4d; }
   .tint { background: #1d2b53; color: #1d2b53; padding: 8px; }
 </style></head>
 <body>
@@ -18,5 +20,11 @@
     <p class="overlay">Dark overlay with dark text</p>
     <p class="photo">White text on a light background</p>
     <p class="tint">Same colour as background</p>
+  </div>
+  <div id="blue">
+    <p class="blue" id="blue-text">Blue text that is not a link</p>
+    <p class="navy" id="navy-text">Navy text that is not a link</p>
+    <p><a href="#" class="blue" id="blue-link">A real blue link</a></p>
+    <p><a href="#"><span class="blue" id="blue-in-link">Blue inside a link</span></a></p>
   </div>
 </body></html>

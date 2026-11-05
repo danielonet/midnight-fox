@@ -189,6 +189,13 @@
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
   }
 
+  // Hue 190°–265° with real saturation: what people read as "blue".
+  function isBlue(c) {
+    if (chroma(c) < 0.1) return false; // same cut-off as "neutral" greys, so theme tints never count
+    const h = rgbToHsl(c)[0] * 360;
+    return h >= 190 && h <= 265;
+  }
+
   const chroma = ({ r, g, b }) => (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
 
   const mix = (a, b, t) => ({
@@ -226,7 +233,7 @@
     const surfaceL = rgbToHsl(T.surface)[2];
     const fgL = rgbToHsl(T.fg)[2];
 
-    const caches = { bg: new Map(), fg: new Map(), border: new Map(), icon: new Map() };
+    const caches = { bg: new Map(), fg: new Map(), fgPlain: new Map(), border: new Map(), icon: new Map() };
 
     function cached(kind, fn) {
       const cache = caches[kind];
@@ -257,10 +264,12 @@
       return hslToRgb(h, sat, l, c.a);
     }
 
-    function fgColor(c) {
+    // Blue text means "this is a link". Only clickable things keep it
+    // (allowBlue); blue anywhere else becomes a neutral text colour.
+    function fgColor(c, allowBlue) {
       const L = lightness(c);
       const ch = chroma(c);
-      if (ch < 0.1) {
+      if (ch < 0.1 || (!allowBlue && isBlue(c))) {
         const t = clamp((L - 0.3) / 0.6, 0, 1);
         return { ...mix(T.fg, T.muted, t), a: c.a };
       }
@@ -286,15 +295,17 @@
 
     // Text must never melt into its background: returns a readable version
     // of `fg` on `backdrop` (same hue), or null when it is already readable.
-    function readable(fg, backdrop, min = MIN_CONTRAST) {
+    // `neutral` also strips colour, for blue text that isn't clickable.
+    function readable(fg, backdrop, neutral = false, min = MIN_CONTRAST) {
       const solid = { ...fg, a: 1 };
-      if (contrastRatio(solid, backdrop) >= min) return null;
+      if (!neutral && contrastRatio(solid, backdrop) >= min) return null;
       const lightBackdrop = luminance(backdrop) > 0.4;
-      const [h, s, l0] = rgbToHsl(fg);
+      const [h, s0, l0] = rgbToHsl(fg);
+      const s = neutral ? 0 : s0;
       const step = lightBackdrop ? -0.04 : 0.04;
       for (let l = l0; l >= 0 && l <= 1; l += step) {
         const c = hslToRgb(h, s, l);
-        if (contrastRatio(c, backdrop) >= min + 0.2) return { ...c, a: fg.a };
+        if (contrastRatio(c, backdrop) >= (l === l0 ? min : min + 0.2)) return { ...c, a: fg.a };
       }
       return { ...(lightBackdrop ? { r: 17, g: 17, b: 17 } : T.fg), a: fg.a };
     }
@@ -310,7 +321,10 @@
         fg: toCss(T.fg), muted: toCss(T.muted), accent: toCss(T.accent)
       },
       bg: mapBg,
-      fg: cached('fg', fgColor),
+      fg: ((link, plain) => (str, isLink = true) => (isLink ? link : plain)(str))(
+        cached('fg', (c) => fgColor(c, true)),
+        cached('fgPlain', (c) => fgColor(c, false))
+      ),
       border: cached('border', borderColor),
       icon: cached('icon', iconColor),
       readable,
@@ -325,6 +339,6 @@
     THEMES,
     DEFAULTS,
     createMapper,
-    color: { parseColor, toCss, lightness, chroma, rgbToHsl, hslToRgb, mix, contrastRatio }
+    color: { parseColor, toCss, lightness, chroma, rgbToHsl, hslToRgb, mix, contrastRatio, isBlue }
   };
 })(typeof globalThis !== 'undefined' ? globalThis : this);
