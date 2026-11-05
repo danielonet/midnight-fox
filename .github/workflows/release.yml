@@ -71,7 +71,7 @@ jobs:
             --amo-metadata amo-metadata.json \
             --approval-timeout "$TIMEOUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: midnight-fox-${{ env.CHANNEL }}
           path: web-ext-artifacts/*
