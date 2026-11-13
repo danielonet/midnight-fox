@@ -124,6 +124,37 @@ const L = (page, sel, prop) => page.$eval(sel, (el, prop) => {
   check('links stay blue', hues['blue-link'] && hues['blue-in-link'], JSON.stringify(hues));
   await hostile.page.close();
 
+  // Hovered table rows: the highlight must be dark, readable and visible,
+  // whatever technique the page uses, and go away when the pointer leaves.
+  const tables = await open(browser, 'tables.html', { theme: 'midnight' });
+  const cell = (id, row) => tables.page.$eval(`#${id} tr:nth-child(${row}) td:last-child`, (td) => {
+    const C = MidnightFox.color;
+    const cs = getComputedStyle(td);
+    let bg = C.parseColor(cs.backgroundColor);
+    if (!bg || bg.a < 0.5) bg = C.parseColor(getComputedStyle(td.parentElement).backgroundColor);
+    if (!bg || bg.a < 0.5) bg = C.parseColor(getComputedStyle(document.documentElement).backgroundColor);
+    const inset = cs.boxShadow.includes('inset') && C.parseColor((cs.boxShadow.match(/rgba?\([^)]*\)/) || [])[0]);
+    if (inset && inset.a > 0.5) bg = inset;
+    return { bg: C.toCss(bg), l: C.lightness(bg), ratio: C.contrastRatio(C.parseColor(cs.color), bg) };
+  });
+  for (const id of ['t-plain', 't-var', 't-external', 't-shadow', 't-anim', 't-js']) {
+    await tables.page.hover(`#${id} tr:first-child td:first-child`);
+    await tables.page.waitForTimeout(300);
+    const on = await cell(id, 1), other = await cell(id, 2);
+    check(`row hover (${id}): dark + readable`, on.l < 0.4 && on.ratio >= 4.5, `${on.bg}, contrast ${on.ratio.toFixed(1)}`);
+    // A script setting an inline colour looks like any other colour change,
+    // so that highlight is remapped like normal content (readable, but faint).
+    if (id !== 't-js') {
+      check(`row hover (${id}): highlight visible`, Math.abs(on.l - other.l) >= 0.03, `${on.bg} vs ${other.bg}`);
+    }
+    await tables.page.mouse.move(690, 690);
+    await tables.page.waitForTimeout(300);
+    const off = await cell(id, 1);
+    check(`row hover (${id}): restored on leave`, off.bg === other.bg, `${off.bg} vs ${other.bg}`);
+  }
+  check('no script errors (tables)', tables.errors.length === 0, tables.errors.join('; '));
+  await tables.page.close();
+
   // Already-dark page is left alone.
   const dark = await open(browser, 'dark.html');
   const ds = await dark.page.evaluate(() => window.__onMessage({ type: 'mf-status' }));

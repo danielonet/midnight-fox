@@ -34,7 +34,9 @@ remapped into a dark theme of your choice.
   - dark text becomes the theme's text colour
   - coloured buttons, links and alerts keep their hue
   - images are never inverted
-  - `:hover` and `:focus` colours from the page's stylesheets are remapped too
+  - `:hover` and `:focus` colours are remapped too, including ones set through CSS
+    variables, stylesheets from other domains or inset box-shadows (checked live as
+    the pointer moves, so highlighted table rows stay dark and readable)
 - **Live updates:** content added later (infinite scroll, single-page apps) is darkened as it appears.
 - **Per-site control:** *Auto* / *Always* / *Never*.
 - **Adjustable:** background brightness, text contrast, and an optional image dimmer.
@@ -151,6 +153,6 @@ code. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
 ## Known limitations
 
-- Colours inside `::before` / `::after` pseudo-elements and cross-origin
-  stylesheets' `:hover` rules aren't remapped.
+- Colours inside `::before` / `::after` pseudo-elements aren't remapped.
+- A hover highlight set by a script (inline style) stays readable but may be hard to see.
 - Text drawn into images or `<canvas>` can't be recoloured. Use **Dim images** to soften bright images.

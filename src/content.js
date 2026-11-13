@@ -9,6 +9,9 @@
  *    [data-midnight-fox="12"] { color: …!important; background-color: …!important }
  * 3. A MutationObserver keeps new or changed content in sync, and
  *    :hover / :focus rules from the page's stylesheets are remapped too.
+ * 4. Hover and focus colours that can't be read up front (CSS variables,
+ *    stylesheets from other domains, inset box-shadows) are checked live
+ *    as the pointer or focus moves, and remapped on the spot.
  */
 (() => {
   'use strict';
@@ -24,6 +27,7 @@
   const ATTR = 'data-midnight-fox';
   const SHEET_ATTR = 'data-midnight-fox-sheet';
   const INLINE_ATTR = 'data-midnight-fox-inline';
+  const LIVE_ATTR = 'data-midnight-fox-live';
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const TRANSPARENT = 'rgba(0, 0, 0, 0)';
   const isTop = window === window.top;
@@ -56,6 +60,11 @@
   // Generated rules: key -> id, id -> original colour set.
   const ruleIds = new Map();
   const ruleDecls = [];
+
+  const COLOR_IN_STR = /rgba?\([^)]*\)/g;
+  const isLight = (c) => !!c && c.a >= 0.3 && lightness(c) > 0.6;
+  // True when a gradient or shadow string contains a light colour.
+  const hasLightColor = (str) => (str.match(COLOR_IN_STR) || []).some((m) => isLight(parseColor(m)));
 
   function siteHost() {
     try {
@@ -190,7 +199,8 @@
   }
 
   const ruleKey = (d) =>
-    [d.color, d.link, d.bg, d.bgImage, d.bt, d.br, d.bb, d.bl, d.fill, d.stroke, d.fix, d.fixFill].map((v) => v || '').join('|');
+    [d.color, d.link, d.bg, d.bgImage, d.shadow, d.bt, d.br, d.bb, d.bl, d.fill, d.stroke, d.fix, d.fixFill]
+      .map((v) => v || '').join('|');
 
   function ruleText(id, d) {
     const out = [];
@@ -202,6 +212,7 @@
     }
     if (d.bg) add('background-color', mapper.bg(d.bg));
     if (d.bgImage) add('background-image', mapper.gradient(d.bgImage));
+    if (d.shadow) add('box-shadow', mapper.gradient(d.shadow));
     if (d.bt) add('border-top-color', mapper.border(d.bt));
     if (d.br) add('border-right-color', mapper.border(d.br));
     if (d.bb) add('border-bottom-color', mapper.border(d.bb));
@@ -345,6 +356,9 @@
     }
     const bi = cs.backgroundImage;
     if (bi && bi !== 'none' && bi.includes('gradient')) d.bgImage = bi;
+    // A huge inset box-shadow is a common way to fill table cells (Bootstrap 5).
+    const sh = cs.boxShadow;
+    if (sh && sh !== 'none' && sh.includes('inset') && hasLightColor(sh)) d.shadow = sh;
 
     // Borders.
     const sides = [['Top', 'bt'], ['Right', 'br'], ['Bottom', 'bb'], ['Left', 'bl']];
@@ -550,7 +564,8 @@
     const bg = s.getPropertyValue('background-color');
     const color = s.getPropertyValue('color');
     const border = s.getPropertyValue('border-top-color') || s.getPropertyValue('border-color');
-    const bgv = bg && mapper.bg(bg);
+    // Lifted a little so the hover highlight stays visible on the dark page.
+    const bgv = bg && highlight(bg, parseColor(mapper.colors.bg));
     const cv = color && mapper.fg(color, CLICKABLE_SEL_RE.test(rule.selectorText));
     const bv = border && mapper.border(border);
     if (bgv) out.push(`background-color:${bgv}!important`);
@@ -599,6 +614,142 @@
     sheets.states.reset(out);
   }
 
+  /* ---------------- live :hover / :focus check ---------------- */
+
+  // Some hover colours can't be remapped in advance: CSS variables,
+  // stylesheets from other domains, inset box-shadows. When the pointer or
+  // focus moves, the elements around it (its ancestors and their direct
+  // children, e.g. every cell of a hovered table row) are checked, and any
+  // light background or dark text that appeared is remapped.
+  const LIVE_PROPS = new Set(['background-color', 'background-image', 'background', 'box-shadow', 'color', 'all']);
+  const liveIds = new Map();
+  let liveFixed = new Set();
+  let hoverTarget = null;
+  let liveFrame = 0;
+
+  function liveRuleText(id, d) {
+    const out = [];
+    if (d.bg) out.push(`background-color:${d.bg}!important`);
+    if (d.bgImage) out.push(`background-image:${d.bgImage}!important`);
+    if (d.shadow) out.push(`box-shadow:${d.shadow}!important`);
+    if (d.color) out.push(`color:${d.color}!important`);
+    // Two id-level boosts: beats the per-element rules and the :hover rules.
+    return `[${LIVE_ATTR}="${id}"]:not(#midnight-fox-x):not(#midnight-fox-y){${out.join(';')}}`;
+  }
+
+  function liveId(d) {
+    const key = [d.bg, d.bgImage, d.shadow, d.color].map((v) => v || '').join('|');
+    let id = liveIds.get(key);
+    if (id === undefined) {
+      id = liveIds.size;
+      liveIds.set(key, id);
+      sheets.live.add(liveRuleText(id, d));
+    }
+    return String(id);
+  }
+
+  // Dark version of a light hover colour that still stands out from what
+  // is behind it, so the highlight stays visible.
+  function highlight(css, under) {
+    const mapped = parseColor(mapper.bg(css));
+    if (!mapped) return null;
+    if (under && Math.abs(lightness(mapped) - lightness(under)) < 0.05) {
+      const [h, s, l] = MF.color.rgbToHsl(mapped);
+      return MF.color.toCss(MF.color.hslToRgb(h, s, Math.min(1, l + 0.07), mapped.a));
+    }
+    return MF.color.toCss(mapped);
+  }
+
+  // Jumps colour transitions to their end so we read the final hover colour.
+  function settleTransitions(el, cs) {
+    if (!el.getAnimations || !cs || cs.transitionDuration.split(',').every((t) => parseFloat(t) === 0)) return;
+    for (const a of el.getAnimations()) {
+      if (a.transitionProperty && LIVE_PROPS.has(a.transitionProperty)) {
+        try { a.finish(); } catch (e) { /* already done */ }
+      }
+    }
+  }
+
+  function liveDecl(el, memo) {
+    const cs = getComputedStyle(el);
+    const d = {};
+    let under;
+    const backdrop = () => (under === undefined ? (under = backdropOf(el.parentElement, memo)) : under);
+    if (isLight(parseColor(cs.backgroundColor))) d.bg = highlight(cs.backgroundColor, backdrop());
+    const bi = cs.backgroundImage;
+    if (bi && bi.includes('gradient') && hasLightColor(bi)) d.bgImage = mapper.gradient(bi);
+    const sh = cs.boxShadow;
+    if (sh && sh.includes('inset') && hasLightColor(sh)) {
+      d.shadow = sh.replace(COLOR_IN_STR, (m) => (isLight(parseColor(m)) && highlight(m, backdrop())) || m);
+    }
+    const col = parseColor(cs.color);
+    if (col && col.a >= 0.3 && lightness(col) < 0.45 && hasText(el)) {
+      d.color = mapper.fg(cs.color, MF.color.isBlue(col) && !!el.closest(CLICKABLE));
+    }
+    for (const k in d) if (!d[k]) delete d[k];
+    return isEmpty(d) ? null : d;
+  }
+
+  function liveCandidates() {
+    const out = new Set(liveFixed);
+    const starts = [hoverTarget, doc.activeElement];
+    for (const start of starts) {
+      let depth = 0;
+      for (let el = start; el && el.nodeType === 1 && el !== rootEl && depth < 12; el = el.parentElement, depth++) {
+        out.add(el);
+        if (el.childElementCount <= 60) for (const ch of el.children) out.add(ch);
+        if (out.size > 500) break;
+      }
+    }
+    return [...out].filter((el) => el.isConnected && !SKIP_TAGS.has(el.localName) && !el.hasAttribute(SHEET_ATTR));
+  }
+
+  function liveCheck() {
+    liveFrame = 0;
+    if (!active) return;
+    const list = liveCandidates();
+    // Read each element as the page styles it right now, without our fix.
+    for (const el of list) if (el.hasAttribute(LIVE_ATTR)) el.removeAttribute(LIVE_ATTR);
+    for (const el of list) settleTransitions(el, getComputedStyle(el));
+    const memo = new Map();
+    const found = [];
+    for (const el of list) {
+      const d = liveDecl(el, memo);
+      if (d) found.push([el, d]);
+    }
+    liveFixed = new Set();
+    for (const [el, d] of found) {
+      el.setAttribute(LIVE_ATTR, liveId(d));
+      liveFixed.add(el);
+    }
+    // Don't let the page animate from its light colour to ours.
+    for (const [el] of found) settleTransitions(el, getComputedStyle(el));
+  }
+
+  function scheduleLiveCheck() {
+    if (active && !liveFrame) liveFrame = requestAnimationFrame(liveCheck);
+  }
+
+  function resetLive() {
+    if (liveFrame) cancelAnimationFrame(liveFrame);
+    liveFrame = 0;
+    for (const el of doc.querySelectorAll(`[${LIVE_ATTR}]`)) el.removeAttribute(LIVE_ATTR);
+    liveFixed = new Set();
+    liveIds.clear();
+    sheets.live.clear();
+  }
+
+  function watchPointer() {
+    const opts = { capture: true, passive: true };
+    doc.addEventListener('pointerover', (e) => { hoverTarget = e.target; scheduleLiveCheck(); }, opts);
+    doc.addEventListener('pointerout', (e) => {
+      if (!e.relatedTarget) { hoverTarget = null; scheduleLiveCheck(); } // left the page
+    }, opts);
+    for (const type of ['focusin', 'focusout', 'change', 'pointerdown', 'pointerup']) {
+      doc.addEventListener(type, scheduleLiveCheck, opts);
+    }
+  }
+
   /* ---------------- watching the page ---------------- */
 
   const queue = new Map(); // element -> deep?
@@ -621,7 +772,7 @@
   function flush() {
     flushScheduled = false;
     if (!active) { queue.clear(); return; }
-    for (const s of ['base', 'rules', 'states']) sheets[s].ensure();
+    for (const s of ['base', 'rules', 'states', 'live']) sheets[s].ensure();
 
     const deep = [], shallow = [];
     let needsQuiet = false;
@@ -665,7 +816,7 @@
       scheduleRescan();
     }
     // Pages sometimes wipe <head>/<html> children; put our sheets back.
-    if (active) for (const s of ['base', 'rules', 'states']) sheets[s].ensure();
+    if (active) for (const s of ['base', 'rules', 'states', 'live']) sheets[s].ensure();
   }
 
   // New stylesheet → the page's colours may have changed everywhere.
@@ -708,6 +859,7 @@
     active = false;
     stopObserver();
     if (was) stripAll();
+    resetLive();
     for (const s of ['base', 'rules', 'states']) sheets[s].clear();
     ruleIds.clear();
     ruleDecls.length = 0;
@@ -749,6 +901,8 @@
         sheets.base.reset(baseRules());
         rebuildRules();
         scheduleStateScan(0);
+        resetLive();
+        scheduleLiveCheck();
       }
     }
     if ('enabled' in changes || ('sites' in changes && siteMode() !== oldMode)) {
@@ -776,8 +930,10 @@
       base: createSheet('base'),
       rules: createSheet('rules'),
       states: createSheet('states'),
+      live: createSheet('live'),
       notrans: createSheet('notrans')
     };
+    watchPointer();
 
     // Paint the background dark straight away to avoid a white flash.
     if (settings.enabled && siteMode() !== 'off' && doc.readyState === 'loading') {
