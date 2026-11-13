@@ -1,0 +1,38 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Table hover</title>
+<link rel="stylesheet" href="tables-external.css">
+<style>
+  body { font-family: sans-serif; background: #fff; color: #222; margin: 20px; }
+  table { border-collapse: collapse; width: 420px; margin-bottom: 14px; }
+  td, th { border: 1px solid #ddd; padding: 6px; }
+
+  /* 1. Plain :hover rule */
+  #t-plain tr:hover { background: #eef3ff; }
+
+  /* 2. Colour from a CSS variable */
+  :root { --row-hover: #f5f7fa; }
+  #t-var tbody tr:hover > td { background-color: var(--row-hover); }
+
+  /* 4. Bootstrap 5 style: inset box-shadow paints the cell */
+  #t-shadow td { --hover-bg: transparent; box-shadow: inset 0 0 0 9999px var(--hover-bg); }
+  #t-shadow tbody tr:hover > td { --hover-bg: #f3f3f3; }
+
+  /* 5. Hover with a transition */
+  #t-anim td { transition: background-color .15s ease; }
+  #t-anim tbody tr:hover td { background-color: rgb(240, 244, 248); }
+</style></head>
+<body>
+<table id="t-plain"><tbody><tr><td>plain a</td><td>1</td></tr><tr><td>plain b</td><td>2</td></tr></tbody></table>
+<table id="t-var"><tbody><tr><td>var a</td><td>1</td></tr><tr><td>var b</td><td>2</td></tr></tbody></table>
+<table id="t-external"><tbody><tr><td>external a</td><td>1</td></tr><tr><td>external b</td><td>2</td></tr></tbody></table>
+<table id="t-shadow"><tbody><tr><td>shadow a</td><td>1</td></tr><tr><td>shadow b</td><td>2</td></tr></tbody></table>
+<table id="t-anim"><tbody><tr><td>anim a</td><td>1</td></tr><tr><td>anim b</td><td>2</td></tr></tbody></table>
+<!-- 3b. Hover done by a script with inline styles -->
+<table id="t-js"><tbody><tr><td>js a</td><td>1</td></tr><tr><td>js b</td><td>2</td></tr></tbody></table>
+<script>
+  for (const tr of document.querySelectorAll('#t-js tr')) {
+    tr.addEventListener('mouseenter', () => { tr.style.backgroundColor = '#fafafa'; });
+    tr.addEventListener('mouseleave', () => { tr.style.backgroundColor = ''; });
+  }
+</script>
+</body></html>
