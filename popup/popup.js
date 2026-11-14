@@ -2,20 +2,51 @@
 
 const MF = globalThis.MidnightFox;
 const api = globalThis.browser;
+const I18N = globalThis.MidnightFoxI18n;
 const $ = (id) => document.getElementById(id);
 
 let settings = { ...MF.DEFAULTS };
 let host = '';
 let tabId = null;
+let t = I18N.translator(I18N.FALLBACK);
 
+// status reason -> [translation key, highlighted]
 const STATUS = {
-  auto: ['Dark palette applied', true],
-  forced: ['Dark palette applied', true],
-  'native-dark': ['Site is already dark', false],
-  'site-off': ['Off for this site', false],
-  disabled: ['Turned off', false],
-  loading: ['Loading…', false]
+  auto: ['sApplied', true],
+  forced: ['sApplied', true],
+  'native-dark': ['sNative', false],
+  'site-off': ['sSiteOff', false],
+  disabled: ['sDisabled', false],
+  loading: ['sLoading', false]
 };
+
+/* ---------- language ---------- */
+
+function buildLanguages() {
+  const sel = $('language');
+  sel.replaceChildren();
+  const auto = document.createElement('option');
+  auto.value = 'auto';
+  sel.append(auto);
+  for (const [code, l] of Object.entries(I18N.LANGUAGES)) {
+    const opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = `${l.flag}  ${l.name}`;
+    sel.append(opt);
+  }
+}
+
+function applyLanguage() {
+  const lang = I18N.resolve(settings.language);
+  t = I18N.translator(lang);
+  document.documentElement.lang = lang;
+  for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  const auto = $('language').options[0];
+  auto.textContent = `🌐  ${t('auto')}`;
+  $('language').value = I18N.LANGUAGES[settings.language] ? settings.language : 'auto';
+}
 
 const save = (patch) => {
   Object.assign(settings, patch);
@@ -90,7 +121,7 @@ function render() {
     btn.setAttribute('aria-checked', String(btn.dataset.mode === mode));
     btn.disabled = !host;
   }
-  $('site-host').textContent = host || 'This page can’t be darkened';
+  $('site-host').textContent = host || t('cantDarken');
 
   for (const key of ['brightness', 'contrast']) {
     $(key).value = settings[key];
@@ -109,11 +140,11 @@ async function refreshStatus() {
   }
   try {
     const s = await api.tabs.sendMessage(tabId, { type: 'mf-status' }, { frameId: 0 });
-    const [text, on] = STATUS[s.reason] || ['', false];
-    el.textContent = text;
+    const [key, on] = STATUS[s.reason] || ['', false];
+    el.textContent = key ? t(key) : '';
     el.classList.toggle('on', on);
   } catch (e) {
-    el.textContent = 'Reload the page to apply';
+    el.textContent = t('sReload');
     el.classList.remove('on');
   }
 }
@@ -121,6 +152,13 @@ async function refreshStatus() {
 /* ---------- events ---------- */
 
 function wire() {
+  $('language').addEventListener('change', (e) => {
+    save({ language: e.target.value });
+    applyLanguage();
+    render();
+    refreshStatus();
+  });
+
   $('enabled').addEventListener('change', (e) => save({ enabled: e.target.checked }).then(render));
 
   for (const btn of document.querySelectorAll('.segmented button')) {
@@ -147,7 +185,7 @@ function wire() {
   }
 
   $('reset').addEventListener('click', () => {
-    const { sites, ...rest } = MF.DEFAULTS;
+    const { sites, ...rest } = MF.DEFAULTS; // language is kept on reset
     save(rest).then(render);
   });
 
@@ -159,6 +197,7 @@ function wire() {
   api.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
     for (const k of Object.keys(changes)) settings[k] = changes[k].newValue ?? MF.DEFAULTS[k];
+    if (changes.language) applyLanguage();
     render();
     setTimeout(refreshStatus, 150);
   });
@@ -166,8 +205,10 @@ function wire() {
 
 async function init() {
   buildThemes();
+  buildLanguages();
   wire();
-  settings = { ...MF.DEFAULTS, ...(await api.storage.local.get(null)) };
+  settings = { language: 'auto', ...MF.DEFAULTS, ...(await api.storage.local.get(null)) };
+  applyLanguage();
   const [tab] = await api.tabs.query({ active: true, currentWindow: true });
   if (tab) {
     tabId = tab.id;

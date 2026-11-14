@@ -28,10 +28,10 @@ header {
   border-bottom: 1px solid var(--border);
 }
 
-h1 { flex: 1; margin: 0; font-size: 15px; font-weight: 600; }
+h1 { flex: 1; min-width: 0; white-space: nowrap; margin: 0; font-size: 15px; font-weight: 600; }
 h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 
-section { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+section { padding: 10px 14px; border-bottom: 1px solid var(--border); }
 
 body.off section { opacity: .45; pointer-events: none; }
 
@@ -92,3 +92,16 @@ footer { display: flex; justify-content: space-between; align-items: center; pad
 kbd { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; font: 11px ui-monospace, monospace; color: var(--fg); }
 .link { background: none; border: 0; color: var(--muted); cursor: pointer; text-decoration: underline; }
 .link:hover { color: var(--fg); }
+
+/* language picker (lives in the header to keep the popup short) */
+#language {
+  width: 118px;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 4px;
+  font: 12px system-ui, "Segoe UI", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+}
+#language:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }

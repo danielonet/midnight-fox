@@ -9,57 +9,59 @@
   <header>
     <img src="../icons/icon-48.png" alt="" width="28" height="28">
     <h1>Midnight Fox</h1>
-    <label class="switch" title="Turn Midnight Fox on or off everywhere">
+    <select id="language" data-i18n-aria="language" data-i18n-title="langAuto"></select>
+    <label class="switch" data-i18n-title="toggleAll">
       <input type="checkbox" id="enabled">
       <span class="slider"></span>
     </label>
   </header>
 
   <div id="permission" class="notice" hidden>
-    <p>Midnight Fox needs access to websites to darken them.</p>
-    <button id="grant">Allow access</button>
+    <p data-i18n="permission"></p>
+    <button id="grant" data-i18n="grant"></button>
   </div>
 
   <section id="site-section">
     <div class="row">
-      <h2 id="site-host">This site</h2>
+      <h2 id="site-host"></h2>
       <span id="status" class="status"></span>
     </div>
-    <div class="segmented" role="radiogroup" aria-label="Dark mode on this site">
-      <button data-mode="auto" role="radio" title="Darken only if the site has no dark mode of its own">Auto</button>
-      <button data-mode="on" role="radio" title="Always remap this site's colours">Always</button>
-      <button data-mode="off" role="radio" title="Never touch this site">Never</button>
+    <div class="segmented" role="radiogroup" data-i18n-aria="siteModeLabel">
+      <button data-mode="auto" role="radio" data-i18n-title="autoTitle" data-i18n="auto"></button>
+      <button data-mode="on" role="radio" data-i18n-title="alwaysTitle" data-i18n="always"></button>
+      <button data-mode="off" role="radio" data-i18n-title="neverTitle" data-i18n="never"></button>
     </div>
   </section>
 
   <section>
-    <h2>Theme</h2>
-    <div id="themes" class="themes" role="radiogroup" aria-label="Dark theme"></div>
+    <h2 data-i18n="theme"></h2>
+    <div id="themes" class="themes" role="radiogroup" data-i18n-aria="themeLabel"></div>
   </section>
 
   <section>
     <div class="range">
-      <label for="brightness">Background brightness</label>
+      <label for="brightness" data-i18n="brightness"></label>
       <output id="brightness-out"></output>
       <input type="range" id="brightness" min="-20" max="20" step="1">
     </div>
     <div class="range">
-      <label for="contrast">Text contrast</label>
+      <label for="contrast" data-i18n="contrast"></label>
       <output id="contrast-out"></output>
       <input type="range" id="contrast" min="-20" max="20" step="1">
     </div>
-    <label class="check"><input type="checkbox" id="dimImages"> Dim images and videos</label>
-    <label class="check" title="Sites that support dark mode will use their own design">
-      <input type="checkbox" id="useNativeDark"> Prefer a site's own dark mode
+    <label class="check"><input type="checkbox" id="dimImages"> <span data-i18n="dimImages"></span></label>
+    <label class="check" data-i18n-title="nativeDarkTitle">
+      <input type="checkbox" id="useNativeDark"> <span data-i18n="nativeDark"></span>
     </label>
   </section>
 
   <footer>
-    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> toggle site</span>
-    <button id="reset" class="link">Reset</button>
+    <span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> <span data-i18n="toggleSite"></span></span>
+    <button id="reset" class="link" data-i18n="reset"></button>
   </footer>
 
   <script src="../src/palette.js"></script>
+  <script src="i18n.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
